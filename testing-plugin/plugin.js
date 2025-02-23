@@ -3,7 +3,11 @@
 "use strict";
 
 //#region plugins/testing-plugin/index.js
-const { util: { awaitDispatch, log }, flux: { awaitStore, dispatcher, stores }, patcher } = shelter;
+const { util: { getFiberOwner, awaitDispatch, log }, flux: { awaitStore, dispatcher, stores }, patcher } = shelter;
+function forceUpdateSettings() {
+	const sidebar = document.querySelector(`nav > [role=tablist]`)?.parentElement;
+	getFiberOwner(sidebar)?.forceUpdate?.();
+}
 function modifyFlags(flags, isStaff) {
 	return isStaff ? flags | 1 : flags & -2;
 }
@@ -39,8 +43,16 @@ function patchActionHandlers() {
 }
 async function triggerDevOptions() {
 	await awaitStore("DeveloperExperimentStore");
+	await awaitStore("ExperimentStore");
+	const { getCurrentUser } = await awaitStore("UserStore");
+	let user = getCurrentUser();
+	if (!user) {
+		await awaitDispatch("CONNECTION_OPEN");
+		user = getCurrentUser();
+	}
 	const actions = Object.values(dispatcher._actionHandlers._dependencyGraph.nodes);
 	actions.find((n) => n.name === "DeveloperExperimentStore").actionHandler.CONNECTION_OPEN();
+	forceUpdateSettings();
 }
 function onLoad() {
 	patchActionHandlers();
