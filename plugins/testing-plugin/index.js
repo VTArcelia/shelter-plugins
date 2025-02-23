@@ -1,8 +1,15 @@
 const {
-    util: { awaitDispatch, log },
+    util: { getFiberOwner, awaitDispatch, log },
     flux: { awaitStore, dispatcher, stores },
     patcher
 } = shelter;
+
+function forceUpdateSettings() {
+    // This also applies to server settings but that's fine
+    const sidebar =
+        document.querySelector(`nav > [role=tablist]`)?.parentElement;
+    getFiberOwner(sidebar)?.forceUpdate?.();
+}
 
 function modifyFlags(flags, isStaff) {
     return isStaff ? flags | 1 : flags & ~1;
@@ -39,6 +46,8 @@ function patchActionHandlers() {
                         }
                     });
 
+                    // We can't just set dispatch.user = userProxy because this dispatch object instance will be
+                    // used for the other action handlers as well
                     const dispatchProxy = new Proxy(dispatch, {
                         get(target, prop) {
                             if (prop === "user") {
@@ -57,6 +66,8 @@ function patchActionHandlers() {
                 "CONNECTION_OPEN",
                 devExperimentStore.actionHandler,
                 function (args, orig) {
+                    // This action handler calls getCurrentUser() itself and reads the user flags from there
+                    // that's why we temporarily overwrite the user object with the staff flags
                     const user = stores.UserStore.getCurrentUser();
                     const origFlags = user.flags;
                     user.flags = modifyFlags(user.flags, pluginEnabled);
@@ -74,15 +85,28 @@ function patchActionHandlers() {
 }
 
 async function triggerDevOptions() {
+    // Make sure they're initialized
     await awaitStore("DeveloperExperimentStore");
+    await awaitStore("ExperimentStore");
+    const { getCurrentUser } = await awaitStore("UserStore");
+
+    let user = getCurrentUser();
+    if (!user) {
+        // Wait for user object in UserStore to be set
+        await awaitDispatch("CONNECTION_OPEN");
+        user = getCurrentUser();
+    }
 
     const actions = Object.values(
         dispatcher._actionHandlers._dependencyGraph.nodes
     );
 
+
     actions
         .find((n) => n.name === "DeveloperExperimentStore")
         .actionHandler.CONNECTION_OPEN();
+
+    forceUpdateSettings();
 }
 
 export function onLoad() {
