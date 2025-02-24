@@ -1,0 +1,20 @@
+.nea-deleted-message {
+  background: rgba(95%, 60%, 75%, 25%);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.nea-dismiss-text {
+  color: #0ff0fa;
+  cursor: pointer;
+  margin-top: 3px;
+  margin-left: 60px;
+  align-self: flex-start;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.nea-dismiss-text:hover {
+  background-color: rgba(114, 137, 255, 0.2);
+}
