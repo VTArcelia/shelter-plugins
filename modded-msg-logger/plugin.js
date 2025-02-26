@@ -44,8 +44,16 @@ function getMessageStore() {
 //#region plugins/modded-msg-logger/index.css
 var modded_msg_logger_default = `.nea-before-edit {
   color: gray;
-  opacity: .75;
-  font-size: .83em;
+  opacity: .8;
+  font-size: .85em;
+}
+
+.deleted-word {
+  color: red;
+}
+
+.added-word {
+  color: #00de00;
 }
 `;
 
@@ -66,9 +74,11 @@ const { plugin: plugin$1, solid, ui: ui$1 } = shelter;
 const settings = () => {
 	const [ignoredUsersString, setIgnoredUsersString] = solid.createSignal(plugin$1.store.ignoredUsers || "");
 	const [ignoredChannelsString, setIgnoredChannelsString] = solid.createSignal(plugin$1.store.ignoredChannels || "");
+	const [showDiffsValue, setShowDiffsValue] = solid.createSignal(plugin$1.store.showDiffs !== false);
 	function saveSettings() {
 		plugin$1.store.ignoredUsers = ignoredUsersString();
 		plugin$1.store.ignoredChannels = ignoredChannelsString();
+		plugin$1.store.showDiffs = showDiffsValue();
 		ui$1.showToast("Settings saved!", { type: "success" });
 		updateIgnoredUsers$1();
 		updateIgnoredChannels$1();
@@ -90,6 +100,17 @@ const settings = () => {
 			},
 			note: "Show message content before edits",
 			children: "Show Edit History"
+		}),
+		(0, import_web$3.createComponent)(ui$1.SwitchItem, {
+			get value() {
+				return showDiffsValue();
+			},
+			onChange: (value) => {
+				setShowDiffsValue(value);
+				setShowDiffs(value);
+			},
+			note: "Highlight added and deleted words in the before edit text",
+			children: "Show Diffs"
 		}),
 		(0, import_web$3.createComponent)(ui$1.Header, {
 			get tag() {
@@ -152,6 +173,7 @@ let ignoredUsers = [];
 let ignoredChannels = [];
 const messageEditHistory = {};
 let showEditHistory = plugin.store.showEditHistory !== false;
+let showDiffs = plugin.store.showDiffs !== false;
 function updateIgnoredUsers() {
 	const ignoredUsersString = plugin.store.ignoredUsers || "";
 	ignoredUsers = ignoredUsersString.split(",").map((id) => id.trim()).filter((id) => id);
@@ -176,6 +198,7 @@ function onLoad() {
 	updateIgnoredUsers();
 	updateIgnoredChannels();
 	showEditHistory = plugin.store.showEditHistory !== false;
+	showDiffs = plugin.store.showDiffs !== false;
 	updateMessageDisplay();
 }
 const oldTimeStamp = "2001-09-11T12:46:30.000Z";
@@ -241,9 +264,28 @@ function displayBeforeEdit(messageId, channelId, messageDom) {
 	if (existingBeforeEdit) existingBeforeEdit.remove();
 	const messageContent = messageDom.querySelector(`[id^="message-content-"]`);
 	if (!messageContent) return;
+	const currentContent = messageContent.textContent || "";
+	const oldWords = previousContent.split(/\s+/);
+	const newWords = currentContent.split(/\s+/);
+	let diffHtml = "";
+	let oldIndex = 0;
+	let newIndex = 0;
+	while (oldIndex < oldWords.length || newIndex < newWords.length) if (oldWords[oldIndex] === newWords[newIndex]) {
+		diffHtml += oldWords[oldIndex] + " ";
+		oldIndex++;
+		newIndex++;
+	} else if (oldIndex < oldWords.length && (newIndex >= newWords.length || oldWords[oldIndex] !== newWords[newIndex + 1])) {
+		diffHtml += `<span class="deleted-word">${oldWords[oldIndex]} </span>`;
+		oldIndex++;
+	} else {
+		diffHtml += `<span class="added-word">${newWords[newIndex]} </span>`;
+		newIndex++;
+	}
+	diffHtml = diffHtml.replace("(edited)", "");
 	const beforeEditContainer = document.createElement("span");
 	beforeEditContainer.classList.add("nea-before-edit");
-	beforeEditContainer.textContent = `\nBefore Edit: ${previousContent}`;
+	if (!showDiffs) beforeEditContainer.innerHTML = `\nBefore Edit: ${previousContent}`;
+else beforeEditContainer.innerHTML = `\nBefore Edit: ${diffHtml}`;
 	messageContent.appendChild(beforeEditContainer);
 }
 function onReRenderEvent(payload) {
@@ -264,10 +306,16 @@ function setShowEditHistory(value) {
 	plugin.store.showEditHistory = value;
 	updateMessageDisplay();
 }
+function setShowDiffs(value) {
+	showDiffs = value;
+	plugin.store.showDiffs = value;
+	updateMessageDisplay();
+}
 
 //#endregion
 exports.onLoad = onLoad
 exports.onUnload = onUnload
+exports.setShowDiffs = setShowDiffs
 exports.setShowEditHistory = setShowEditHistory
 exports.settings = settings
 return exports;
