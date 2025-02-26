@@ -1,14 +1,16 @@
 import { Component } from 'solid-js';
 const { plugin, solid, ui } = shelter;
-import { setShowEditHistory } from './index';
+import { setShowEditHistory, setShowDiffs } from './index';
 
 export const settings: Component = () => {
     const [ignoredUsersString, setIgnoredUsersString] = solid.createSignal(plugin.store.ignoredUsers || '');
     const [ignoredChannelsString, setIgnoredChannelsString] = solid.createSignal(plugin.store.ignoredChannels || '');
+    const [showDiffsValue, setShowDiffsValue] = solid.createSignal(plugin.store.showDiffs !== false);
 
     function saveSettings() {
         plugin.store.ignoredUsers = ignoredUsersString();
         plugin.store.ignoredChannels = ignoredChannelsString();
+        plugin.store.showDiffs = showDiffsValue();
         ui.showToast("Settings saved!", { type: "success" });
         updateIgnoredUsers();
         updateIgnoredChannels();
@@ -33,6 +35,17 @@ export const settings: Component = () => {
                 note="Show message content before edits"
             >
                 Show Edit History
+            </ui.SwitchItem>
+
+            <ui.SwitchItem
+                value={showDiffsValue()}
+                onChange={(value) => {
+                    setShowDiffsValue(value);
+                    setShowDiffs(value);
+                }}
+                note="Highlight added and deleted words in the before edit text"
+            >
+                Show Diffs
             </ui.SwitchItem>
 
             <ui.Header tag={ui.HeaderTags.H3}>Ignored User IDs</ui.Header>

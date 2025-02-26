@@ -10,6 +10,7 @@ let ignoredChannels: string[] = [];
 const messageEditHistory: Record<string, string> = {};
 
 let showEditHistory: boolean = plugin.store.showEditHistory !== false;
+let showDiffs: boolean = plugin.store.showDiffs !== false;
 
 function updateIgnoredUsers() {
     const ignoredUsersString = plugin.store.ignoredUsers || '';
@@ -43,6 +44,7 @@ export function onLoad() {
     updateIgnoredUsers();
     updateIgnoredChannels();
     showEditHistory = plugin.store.showEditHistory !== false;
+    showDiffs = plugin.store.showDiffs !== false;
     updateMessageDisplay();
 }
 
@@ -138,13 +140,39 @@ function displayBeforeEdit(messageId: string, channelId: string, messageDom: HTM
     const messageContent = messageDom.querySelector(`[id^="message-content-"]`);
     if (!messageContent) return;
 
+    const currentContent = messageContent.textContent || '';
+    const oldWords = previousContent.split(/\s+/);
+    const newWords = currentContent.split(/\s+/);
+
+    let diffHtml = '';
+    let oldIndex = 0;
+    let newIndex = 0;
+
+    while (oldIndex < oldWords.length || newIndex < newWords.length) {
+        if (oldWords[oldIndex] === newWords[newIndex]) {
+            diffHtml += oldWords[oldIndex] + ' ';
+            oldIndex++;
+            newIndex++;
+        } else if (oldIndex < oldWords.length && (newIndex >= newWords.length || oldWords[oldIndex] !== newWords[newIndex + 1])) {
+            diffHtml += `<span class="deleted-word">${oldWords[oldIndex]} </span>`;
+            oldIndex++;
+        } else {
+            diffHtml += `<span class="added-word">${newWords[newIndex]} </span>`;
+            newIndex++;
+        }
+    }
+    diffHtml = diffHtml.replace('(edited)', '');
+
     const beforeEditContainer = document.createElement('span');
     beforeEditContainer.classList.add('nea-before-edit');
-    beforeEditContainer.textContent = `\nBefore Edit: ${previousContent}`;
+    if(!showDiffs){
+        beforeEditContainer.innerHTML = `\nBefore Edit: ${previousContent}`;
+    } else {
+        beforeEditContainer.innerHTML = `\nBefore Edit: ${diffHtml}`;
+    }
 
     messageContent.appendChild(beforeEditContainer);
 }
-
 
 function onReRenderEvent(payload: AnyDispatchPayload) {
     if (payload.type === 'CHANNEL_SELECT' || payload.type === 'UPDATE_CHANNEL_DIMENSIONS') {
@@ -172,5 +200,11 @@ export { settings } from './settings';
 export function setShowEditHistory(value: boolean) {
     showEditHistory = value;
     plugin.store.showEditHistory = value;
+    updateMessageDisplay();
+}
+
+export function setShowDiffs(value: boolean) {
+    showDiffs = value;
+    plugin.store.showDiffs = value;
     updateMessageDisplay();
 }

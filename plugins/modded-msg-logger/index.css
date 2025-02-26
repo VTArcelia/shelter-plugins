@@ -1,5 +1,13 @@
 .nea-before-edit {
-    font-size: 0.83em;
+    font-size: 0.85em;
     color: gray;
-    opacity: 0.75;
+    opacity: 0.8;
+}
+
+.deleted-word {
+    color: rgb(255, 0, 0);
+}
+
+.added-word {
+    color: rgb(0, 222, 0);
 }
