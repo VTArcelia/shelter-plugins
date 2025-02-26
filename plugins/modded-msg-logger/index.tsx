@@ -7,6 +7,9 @@ const uninjectCss = ui.injectCss(css);
 
 let ignoredUsers: string[] = [];
 let ignoredChannels: string[] = [];
+const messageEditHistory: Record<string, string> = {};
+
+let showEditHistory: boolean = plugin.store.showEditHistory !== false;
 
 function updateIgnoredUsers() {
     const ignoredUsersString = plugin.store.ignoredUsers || '';
@@ -31,13 +34,14 @@ function updateMessageDisplay() {
         const messageDom = document.getElementById(`chat-messages-${message.channel_id}-${message.id}`);
         if (!messageDom) continue;
 
-        if (message.editedTimestamp?.toISOString() === oldTimeStamp) {
-            if (ignoredUsers.includes(message.author.id) || ignoredChannels.includes(message.channel_id)) {
-                messageDom.style.display = 'none';
-            } else {
-                messageDom.style.display = '';
-            }
+        if (ignoredUsers.includes(message.author.id) || ignoredChannels.includes(message.channel_id)) {
+            messageDom.style.display = 'none';
+            continue;
+        } else {
+            messageDom.style.display = '';
         }
+
+        displayBeforeEdit(message.id, message.channel_id, messageDom);
     }
 }
 
@@ -47,9 +51,46 @@ export function onLoad() {
     }
     updateIgnoredUsers();
     updateIgnoredChannels();
+    showEditHistory = plugin.store.showEditHistory !== false;
+    updateMessageDisplay();
 }
 
 const oldTimeStamp = '2001-09-11T12:46:30.000Z';
+
+function addEphemeralIndicator(channelId: string, messageId: string) {
+    const messageDom = document.getElementById(`chat-messages-${channelId}-${messageId}`);
+    if (!messageDom) return;
+
+    messageDom.classList.add('ephemeral__5126c');
+
+    if (messageDom.dataset.ephemeralIndicatorAdded === 'true') {
+        return;
+    }
+
+    const ephemeralIndicator = document.createElement('div');
+    ephemeralIndicator.id = `message-accessories-${messageId}`;
+    ephemeralIndicator.className = 'nea-ephemeral-indicator';
+    ephemeralIndicator.innerHTML = `
+        <span class="nea-only-you">Only you can see this message • </span>
+        <span class="nea-dismiss-text">Dismiss Message</span>
+    `;
+
+    messageDom.appendChild(ephemeralIndicator);
+
+    const dismissButton = ephemeralIndicator.querySelector('.nea-dismiss-text');
+    if (dismissButton) {
+        dismissButton.addEventListener('click', () => {
+            flux.dispatcher.dispatch({
+                type: 'MESSAGE_DELETE',
+                channelId: channelId,
+                id: messageId,
+                dismissed: true,
+            });
+        });
+    }
+
+    messageDom.dataset.ephemeralIndicatorAdded = 'true';
+}
 
 function block(payload: AnyDispatchPayload) {
     if (payload.type === 'MESSAGE_DELETE') {
@@ -68,35 +109,59 @@ function block(payload: AnyDispatchPayload) {
             guildId: payload.guildId,
             message: { ...storedMessage.toJS(), edited_timestamp: oldTimeStamp },
         };
-        paintRed(storedMessage.channel_id, storedMessage.id);
+        addEphemeralIndicator(storedMessage.channel_id, storedMessage.id);
         return replacementPayload;
     }
+
+    if (payload.type === 'MESSAGE_UPDATE') {
+        const message = payload.message;
+        if (!message || !message.id) return;
+
+        const messageStore = getMessageStore();
+        const oldMessage = messageStore.getMessage(message.channel_id, message.id);
+
+        if (oldMessage && oldMessage.content !== message.content) {
+            messageEditHistory[message.id] = oldMessage.content;
+        }
+
+        setTimeout(() => {
+            const messageDom = document.getElementById(`chat-messages-${message.channel_id}-${message.id}`);
+            if (messageDom) {
+                displayBeforeEdit(message.id, message.channel_id, messageDom);
+            }
+        }, 100);
+    }
+
     return;
 }
 
-function paintRed(channelId: string, messageId: string) {
-    let dom = document.getElementById(`chat-messages-${channelId}-${messageId}`);
-    if (!dom) return;
-    dom.classList.add('nea-deleted-message');
-    addDismissText(dom, channelId, messageId);
-}
+function displayBeforeEdit(messageId: string, channelId: string, messageDom: HTMLElement) {
+    if (!showEditHistory) {
+        const existingBeforeEdit = messageDom.querySelector('.nea-before-edit');
+        if (existingBeforeEdit) {
+            existingBeforeEdit.remove();
+        }
+        return;
+    }
+    const previousContent = messageEditHistory[messageId];
+    if (!previousContent) return;
 
-function addDismissText(messageDom: HTMLElement, channelId: string, messageId: string) {
-    if (messageDom.querySelector('.nea-dismiss-text')) return;
-    const dismissText = document.createElement('span');
-    dismissText.textContent = 'Dismiss';
-    dismissText.classList.add('nea-dismiss-text');
-    dismissText.addEventListener('click', () => dismissMessage(channelId, messageId));
-    messageDom.appendChild(dismissText);
-}
+    let existingBeforeEdit = messageDom.querySelector('.nea-before-edit');
+    if (existingBeforeEdit) {
+        existingBeforeEdit.remove();
+    }
 
-function dismissMessage(channelId: string, messageId: string) {
-    flux.dispatcher.dispatch({
-        type: 'MESSAGE_DELETE',
-        channelId: channelId,
-        id: messageId,
-        dismissed: true,
-    });
+    const beforeEditContainer = document.createElement('div');
+    beforeEditContainer.classList.add('nea-before-edit');
+    beforeEditContainer.textContent = `Before Edit: ${previousContent}`;
+
+    const messageContent = messageDom.querySelector('[data-message-content]');
+
+    if (messageContent) {
+        messageContent.parentNode?.insertBefore(beforeEditContainer, messageContent);
+    } else {
+        messageDom.appendChild(beforeEditContainer);
+    }
 }
 
 function onReRenderEvent(payload: AnyDispatchPayload) {
@@ -121,3 +186,9 @@ function getSelectedChannel() {
 (window as any).updateIgnoredChannels = updateIgnoredChannels;
 
 export { settings } from './settings';
+
+export function setShowEditHistory(value: boolean) {
+    showEditHistory = value;
+    plugin.store.showEditHistory = value;
+    updateMessageDisplay();
+}

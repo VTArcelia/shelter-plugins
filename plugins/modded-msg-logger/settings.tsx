@@ -1,16 +1,17 @@
 import { Component } from 'solid-js';
 const { plugin, solid, ui } = shelter;
+import { setShowEditHistory } from './index';
 
 export const settings: Component = () => {
     const [ignoredUsersString, setIgnoredUsersString] = solid.createSignal(plugin.store.ignoredUsers || '');
-    const [ignoredChannelsString, setIgnoredChannelsString] = solid.createSignal(plugin.store.ignoredChannels || ''); 
+    const [ignoredChannelsString, setIgnoredChannelsString] = solid.createSignal(plugin.store.ignoredChannels || '');
 
     function saveSettings() {
         plugin.store.ignoredUsers = ignoredUsersString();
         plugin.store.ignoredChannels = ignoredChannelsString();
         ui.showToast("Settings saved!", { type: "success" });
         updateIgnoredUsers();
-        updateIgnoredChannels(); 
+        updateIgnoredChannels();
     }
 
     let updateIgnoredUsers: () => void;
@@ -23,6 +24,17 @@ export const settings: Component = () => {
 
     return (
         <>
+            <ui.SwitchItem
+                value={plugin.store.showEditHistory !== false}
+                onChange={(value) => {
+                    plugin.store.showEditHistory = value;
+                    setShowEditHistory(value);
+                }}
+                note="Show message content before edits"
+            >
+                Show Edit History
+            </ui.SwitchItem>
+
             <ui.Header tag={ui.HeaderTags.H3}>Ignored User IDs</ui.Header>
             <ui.TextBox
                 placeholder="Enter user IDs (comma-separated)"
@@ -32,7 +44,7 @@ export const settings: Component = () => {
                 multiline
             />
 
-            <ui.Header tag={ui.HeaderTags.H3}>Ignored Channel IDs</ui.Header> 
+            <ui.Header tag={ui.HeaderTags.H3}>Ignored Channel IDs</ui.Header>
             <ui.TextBox
                 placeholder="Enter channel IDs (comma-separated)"
                 value={ignoredChannelsString()}

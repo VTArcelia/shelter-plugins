@@ -1,20 +1,26 @@
-.nea-deleted-message {
-  background: rgba(95%, 60%, 75%, 25%);
-  position: relative;
-  display: flex;
-  flex-direction: column;
+.nea-ephemeral-indicator {
+    display: flex;
+    align-items: center;
+}
+
+.nea-only-you {
+    font-size: 0.8em;
+    color: gray;
+	margin-left: 10px;
 }
 
 .nea-dismiss-text {
-  color: #0ff0fa;
-  cursor: pointer;
-  margin-top: 3px;
-  margin-left: 60px;
-  align-self: flex-start;
-  padding: 2px 4px;
-  border-radius: 3px;
+    color: #0ff0fa;
+    cursor: pointer;
+    transform: scale(0.75);
+    transform-origin: top left;
+    margin-left: 3px;
+    align-self: flex-start;
 }
 
-.nea-dismiss-text:hover {
-  background-color: rgba(114, 137, 255, 0.2);
+.nea-before-edit {
+    font-size: 0.85em;
+    color: gray;
+    margin-top: 8px;
+    margin-left: 10px;
 }
