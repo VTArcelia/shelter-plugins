@@ -42,31 +42,10 @@ function getMessageStore() {
 
 //#endregion
 //#region plugins/modded-msg-logger/index.css
-var modded_msg_logger_default = `.nea-ephemeral-indicator {
-  align-items: center;
-  display: flex;
-}
-
-.nea-only-you {
+var modded_msg_logger_default = `.nea-before-edit {
   color: gray;
-  margin-left: 10px;
-  font-size: .8em;
-}
-
-.nea-dismiss-text {
-  color: #0ff0fa;
-  cursor: pointer;
-  transform-origin: 0 0;
-  align-self: flex-start;
-  margin-left: 3px;
-  transform: scale(.75);
-}
-
-.nea-before-edit {
-  color: gray;
-  margin-top: 8px;
-  margin-left: 10px;
-  font-size: .85em;
+  opacity: .75;
+  font-size: .83em;
 }
 `;
 
@@ -200,29 +179,21 @@ function onLoad() {
 	updateMessageDisplay();
 }
 const oldTimeStamp = "2001-09-11T12:46:30.000Z";
-function addEphemeralIndicator(channelId, messageId) {
+function attachDismissListener(channelId, messageId) {
 	const messageDom = document.getElementById(`chat-messages-${channelId}-${messageId}`);
 	if (!messageDom) return;
-	messageDom.classList.add("ephemeral__5126c");
-	if (messageDom.dataset.ephemeralIndicatorAdded === "true") return;
-	const ephemeralIndicator = document.createElement("div");
-	ephemeralIndicator.id = `message-accessories-${messageId}`;
-	ephemeralIndicator.className = "nea-ephemeral-indicator";
-	ephemeralIndicator.innerHTML = `
-        <span class="nea-only-you">Only you can see this message • </span>
-        <span class="nea-dismiss-text">Dismiss Message</span>
-    `;
-	messageDom.appendChild(ephemeralIndicator);
-	const dismissButton = ephemeralIndicator.querySelector(".nea-dismiss-text");
-	if (dismissButton) dismissButton.addEventListener("click", () => {
+	const dismissButton = messageDom.querySelector(`[class*="ephemeralMessage"] a[role="button"][tabindex="0"]`);
+	if (!dismissButton) return;
+	if (dismissButton.dataset.dismissListenerAdded === "true") return;
+	dismissButton.onclick = () => {
 		flux.dispatcher.dispatch({
 			type: "MESSAGE_DELETE",
 			channelId,
 			id: messageId,
 			dismissed: true
 		});
-	});
-	messageDom.dataset.ephemeralIndicatorAdded = "true";
+	};
+	dismissButton.dataset.dismissListenerAdded = "true";
 }
 function block(payload) {
 	if (payload.type === "MESSAGE_DELETE") {
@@ -237,10 +208,11 @@ function block(payload) {
 			guildId: payload.guildId,
 			message: {
 				...storedMessage.toJS(),
-				edited_timestamp: oldTimeStamp
+				edited_timestamp: oldTimeStamp,
+				flags: 64
 			}
 		};
-		addEphemeralIndicator(storedMessage.channel_id, storedMessage.id);
+		setTimeout(() => attachDismissListener(storedMessage.channel_id, storedMessage.id), 100);
 		return replacementPayload;
 	}
 	if (payload.type === "MESSAGE_UPDATE") {
@@ -267,12 +239,12 @@ function displayBeforeEdit(messageId, channelId, messageDom) {
 	if (!previousContent) return;
 	let existingBeforeEdit = messageDom.querySelector(".nea-before-edit");
 	if (existingBeforeEdit) existingBeforeEdit.remove();
-	const beforeEditContainer = document.createElement("div");
+	const messageContent = messageDom.querySelector(`[id^="message-content-"]`);
+	if (!messageContent) return;
+	const beforeEditContainer = document.createElement("span");
 	beforeEditContainer.classList.add("nea-before-edit");
-	beforeEditContainer.textContent = `Before Edit: ${previousContent}`;
-	const messageContent = messageDom.querySelector("[data-message-content]");
-	if (messageContent) messageContent.parentNode?.insertBefore(beforeEditContainer, messageContent);
-else messageDom.appendChild(beforeEditContainer);
+	beforeEditContainer.textContent = `\nBefore Edit: ${previousContent}`;
+	messageContent.appendChild(beforeEditContainer);
 }
 function onReRenderEvent(payload) {
 	if (payload.type === "CHANNEL_SELECT" || payload.type === "UPDATE_CHANNEL_DIMENSIONS") updateMessageDisplay();
