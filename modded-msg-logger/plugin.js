@@ -42,25 +42,31 @@ function getMessageStore() {
 
 //#endregion
 //#region plugins/modded-msg-logger/index.css
-var modded_msg_logger_default = `.nea-deleted-message {
-  background: #f299bf40;
-  flex-direction: column;
+var modded_msg_logger_default = `.nea-ephemeral-indicator {
+  align-items: center;
   display: flex;
-  position: relative;
+}
+
+.nea-only-you {
+  color: gray;
+  margin-left: 10px;
+  font-size: .8em;
 }
 
 .nea-dismiss-text {
   color: #0ff0fa;
   cursor: pointer;
-  border-radius: 3px;
+  transform-origin: 0 0;
   align-self: flex-start;
-  margin-top: 3px;
-  margin-left: 60px;
-  padding: 2px 4px;
+  margin-left: 3px;
+  transform: scale(.75);
 }
 
-.nea-dismiss-text:hover {
-  background-color: #7289ff33;
+.nea-before-edit {
+  color: gray;
+  margin-top: 8px;
+  margin-left: 10px;
+  font-size: .85em;
 }
 `;
 
@@ -95,6 +101,17 @@ const settings = () => {
 		updateIgnoredChannels$1 = window.updateIgnoredChannels;
 	});
 	return [
+		(0, import_web$3.createComponent)(ui$1.SwitchItem, {
+			get value() {
+				return plugin$1.store.showEditHistory !== false;
+			},
+			onChange: (value) => {
+				plugin$1.store.showEditHistory = value;
+				setShowEditHistory(value);
+			},
+			note: "Show message content before edits",
+			children: "Show Edit History"
+		}),
 		(0, import_web$3.createComponent)(ui$1.Header, {
 			get tag() {
 				return ui$1.HeaderTags.H3;
@@ -154,6 +171,8 @@ const unintercept = flux.intercept(block);
 const uninjectCss = ui.injectCss(modded_msg_logger_default);
 let ignoredUsers = [];
 let ignoredChannels = [];
+const messageEditHistory = {};
+let showEditHistory = plugin.store.showEditHistory !== false;
 function updateIgnoredUsers() {
 	const ignoredUsersString = plugin.store.ignoredUsers || "";
 	ignoredUsers = ignoredUsersString.split(",").map((id) => id.trim()).filter((id) => id);
@@ -172,16 +191,45 @@ function updateMessageDisplay() {
 	for (const message of messages) {
 		const messageDom = document.getElementById(`chat-messages-${message.channel_id}-${message.id}`);
 		if (!messageDom) continue;
-		if (message.editedTimestamp?.toISOString() === oldTimeStamp) if (ignoredUsers.includes(message.author.id) || ignoredChannels.includes(message.channel_id)) messageDom.style.display = "none";
-else messageDom.style.display = "";
+		if (ignoredUsers.includes(message.author.id) || ignoredChannels.includes(message.channel_id)) {
+			messageDom.style.display = "none";
+			continue;
+		} else messageDom.style.display = "";
+		displayBeforeEdit(message.id, message.channel_id, messageDom);
 	}
 }
 function onLoad() {
 	for (const trigger of messageReRenderTriggers) flux.dispatcher.subscribe(trigger, onReRenderEvent);
 	updateIgnoredUsers();
 	updateIgnoredChannels();
+	showEditHistory = plugin.store.showEditHistory !== false;
+	updateMessageDisplay();
 }
 const oldTimeStamp = "2001-09-11T12:46:30.000Z";
+function addEphemeralIndicator(channelId, messageId) {
+	const messageDom = document.getElementById(`chat-messages-${channelId}-${messageId}`);
+	if (!messageDom) return;
+	messageDom.classList.add("ephemeral__5126c");
+	if (messageDom.dataset.ephemeralIndicatorAdded === "true") return;
+	const ephemeralIndicator = document.createElement("div");
+	ephemeralIndicator.id = `message-accessories-${messageId}`;
+	ephemeralIndicator.className = "nea-ephemeral-indicator";
+	ephemeralIndicator.innerHTML = `
+        <span class="nea-only-you">Only you can see this message • </span>
+        <span class="nea-dismiss-text">Dismiss Message</span>
+    `;
+	messageDom.appendChild(ephemeralIndicator);
+	const dismissButton = ephemeralIndicator.querySelector(".nea-dismiss-text");
+	if (dismissButton) dismissButton.addEventListener("click", () => {
+		flux.dispatcher.dispatch({
+			type: "MESSAGE_DELETE",
+			channelId,
+			id: messageId,
+			dismissed: true
+		});
+	});
+	messageDom.dataset.ephemeralIndicatorAdded = "true";
+}
 function block(payload) {
 	if (payload.type === "MESSAGE_DELETE") {
 		if (payload.dismissed) return;
@@ -198,32 +246,38 @@ function block(payload) {
 				edited_timestamp: oldTimeStamp
 			}
 		};
-		paintRed(storedMessage.channel_id, storedMessage.id);
+		addEphemeralIndicator(storedMessage.channel_id, storedMessage.id);
 		return replacementPayload;
+	}
+	if (payload.type === "MESSAGE_UPDATE") {
+		const message = payload.message;
+		if (!message || !message.id) return;
+		const messageStore = getMessageStore();
+		const oldMessage = messageStore.getMessage(message.channel_id, message.id);
+		if (oldMessage && oldMessage.content !== message.content) messageEditHistory[message.id] = oldMessage.content;
+		setTimeout(() => {
+			const messageDom = document.getElementById(`chat-messages-${message.channel_id}-${message.id}`);
+			if (messageDom) displayBeforeEdit(message.id, message.channel_id, messageDom);
+		}, 100);
 	}
 	return;
 }
-function paintRed(channelId, messageId) {
-	let dom = document.getElementById(`chat-messages-${channelId}-${messageId}`);
-	if (!dom) return;
-	dom.classList.add("nea-deleted-message");
-	addDismissText(dom, channelId, messageId);
-}
-function addDismissText(messageDom, channelId, messageId) {
-	if (messageDom.querySelector(".nea-dismiss-text")) return;
-	const dismissText = document.createElement("span");
-	dismissText.textContent = "Dismiss";
-	dismissText.classList.add("nea-dismiss-text");
-	dismissText.addEventListener("click", () => dismissMessage(channelId, messageId));
-	messageDom.appendChild(dismissText);
-}
-function dismissMessage(channelId, messageId) {
-	flux.dispatcher.dispatch({
-		type: "MESSAGE_DELETE",
-		channelId,
-		id: messageId,
-		dismissed: true
-	});
+function displayBeforeEdit(messageId, channelId, messageDom) {
+	if (!showEditHistory) {
+		const existingBeforeEdit$1 = messageDom.querySelector(".nea-before-edit");
+		if (existingBeforeEdit$1) existingBeforeEdit$1.remove();
+		return;
+	}
+	const previousContent = messageEditHistory[messageId];
+	if (!previousContent) return;
+	let existingBeforeEdit = messageDom.querySelector(".nea-before-edit");
+	if (existingBeforeEdit) existingBeforeEdit.remove();
+	const beforeEditContainer = document.createElement("div");
+	beforeEditContainer.classList.add("nea-before-edit");
+	beforeEditContainer.textContent = `Before Edit: ${previousContent}`;
+	const messageContent = messageDom.querySelector("[data-message-content]");
+	if (messageContent) messageContent.parentNode?.insertBefore(beforeEditContainer, messageContent);
+else messageDom.appendChild(beforeEditContainer);
 }
 function onReRenderEvent(payload) {
 	if (payload.type === "CHANNEL_SELECT" || payload.type === "UPDATE_CHANNEL_DIMENSIONS") updateMessageDisplay();
@@ -238,10 +292,16 @@ function getSelectedChannel() {
 }
 window.updateIgnoredUsers = updateIgnoredUsers;
 window.updateIgnoredChannels = updateIgnoredChannels;
+function setShowEditHistory(value) {
+	showEditHistory = value;
+	plugin.store.showEditHistory = value;
+	updateMessageDisplay();
+}
 
 //#endregion
 exports.onLoad = onLoad
 exports.onUnload = onUnload
+exports.setShowEditHistory = setShowEditHistory
 exports.settings = settings
 return exports;
 })({});
