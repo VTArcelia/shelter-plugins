@@ -48,39 +48,27 @@ export function onLoad() {
 
 const oldTimeStamp = '2001-09-11T12:46:30.000Z';
 
-function addEphemeralIndicator(channelId: string, messageId: string) {
+function attachDismissListener(channelId: string, messageId: string) {
     const messageDom = document.getElementById(`chat-messages-${channelId}-${messageId}`);
     if (!messageDom) return;
 
-    messageDom.classList.add('ephemeral__5126c');
+    const dismissButton = messageDom.querySelector(`[class*="ephemeralMessage"] a[role="button"][tabindex="0"]`);
+    if (!dismissButton) return;
 
-    if (messageDom.dataset.ephemeralIndicatorAdded === 'true') {
+    if (dismissButton.dataset.dismissListenerAdded === 'true') {
         return;
     }
 
-    const ephemeralIndicator = document.createElement('div');
-    ephemeralIndicator.id = `message-accessories-${messageId}`;
-    ephemeralIndicator.className = 'nea-ephemeral-indicator';
-    ephemeralIndicator.innerHTML = `
-        <span class="nea-only-you">Only you can see this message • </span>
-        <span class="nea-dismiss-text">Dismiss Message</span>
-    `;
-
-    messageDom.appendChild(ephemeralIndicator);
-
-    const dismissButton = ephemeralIndicator.querySelector('.nea-dismiss-text');
-    if (dismissButton) {
-        dismissButton.addEventListener('click', () => {
-            flux.dispatcher.dispatch({
-                type: 'MESSAGE_DELETE',
-                channelId: channelId,
-                id: messageId,
-                dismissed: true,
-            });
+    dismissButton.onclick = () => {
+        flux.dispatcher.dispatch({
+            type: 'MESSAGE_DELETE',
+            channelId: channelId,
+            id: messageId,
+            dismissed: true,
         });
-    }
+    };
 
-    messageDom.dataset.ephemeralIndicatorAdded = 'true';
+    dismissButton.dataset.dismissListenerAdded = 'true';
 }
 
 function block(payload: AnyDispatchPayload) {
@@ -98,9 +86,9 @@ function block(payload: AnyDispatchPayload) {
         let replacementPayload: AnyDispatchPayload = {
             type: 'MESSAGE_UPDATE',
             guildId: payload.guildId,
-            message: { ...storedMessage.toJS(), edited_timestamp: oldTimeStamp },
+            message: { ...storedMessage.toJS(), edited_timestamp: oldTimeStamp, flags: 64 }, // Set the flag here
         };
-        addEphemeralIndicator(storedMessage.channel_id, storedMessage.id);
+        setTimeout(() => attachDismissListener(storedMessage.channel_id, storedMessage.id), 100);
         return replacementPayload;
     }
 
@@ -138,6 +126,7 @@ function displayBeforeEdit(messageId: string, channelId: string, messageDom: HTM
         }
         return;
     }
+
     const previousContent = messageEditHistory[messageId];
     if (!previousContent) return;
 
@@ -146,18 +135,16 @@ function displayBeforeEdit(messageId: string, channelId: string, messageDom: HTM
         existingBeforeEdit.remove();
     }
 
-    const beforeEditContainer = document.createElement('div');
+    const messageContent = messageDom.querySelector(`[id^="message-content-"]`);
+    if (!messageContent) return;
+
+    const beforeEditContainer = document.createElement('span');
     beforeEditContainer.classList.add('nea-before-edit');
-    beforeEditContainer.textContent = `Before Edit: ${previousContent}`;
+    beforeEditContainer.textContent = `\nBefore Edit: ${previousContent}`;
 
-    const messageContent = messageDom.querySelector('[data-message-content]');
-
-    if (messageContent) {
-        messageContent.parentNode?.insertBefore(beforeEditContainer, messageContent);
-    } else {
-        messageDom.appendChild(beforeEditContainer);
-    }
+    messageContent.appendChild(beforeEditContainer);
 }
+
 
 function onReRenderEvent(payload: AnyDispatchPayload) {
     if (payload.type === 'CHANNEL_SELECT' || payload.type === 'UPDATE_CHANNEL_DIMENSIONS') {

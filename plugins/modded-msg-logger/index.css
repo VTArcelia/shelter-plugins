@@ -1,26 +1,5 @@
-.nea-ephemeral-indicator {
-    display: flex;
-    align-items: center;
-}
-
-.nea-only-you {
-    font-size: 0.8em;
-    color: gray;
-	margin-left: 10px;
-}
-
-.nea-dismiss-text {
-    color: #0ff0fa;
-    cursor: pointer;
-    transform: scale(0.75);
-    transform-origin: top left;
-    margin-left: 3px;
-    align-self: flex-start;
-}
-
 .nea-before-edit {
-    font-size: 0.85em;
+    font-size: 0.83em;
     color: gray;
-    margin-top: 8px;
-    margin-left: 10px;
+    opacity: 0.75;
 }
