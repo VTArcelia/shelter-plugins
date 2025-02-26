@@ -14,13 +14,11 @@ let showEditHistory: boolean = plugin.store.showEditHistory !== false;
 function updateIgnoredUsers() {
     const ignoredUsersString = plugin.store.ignoredUsers || '';
     ignoredUsers = ignoredUsersString.split(',').map(id => id.trim()).filter(id => id);
-    updateMessageDisplay();
 }
 
 function updateIgnoredChannels() {
     const ignoredChannelsString = plugin.store.ignoredChannels || '';
     ignoredChannels = ignoredChannelsString.split(',').map(id => id.trim()).filter(id => id);
-    updateMessageDisplay();
 }
 
 function updateMessageDisplay() {
@@ -33,13 +31,6 @@ function updateMessageDisplay() {
     for (const message of messages) {
         const messageDom = document.getElementById(`chat-messages-${message.channel_id}-${message.id}`);
         if (!messageDom) continue;
-
-        if (ignoredUsers.includes(message.author.id) || ignoredChannels.includes(message.channel_id)) {
-            messageDom.style.display = 'none';
-            continue;
-        } else {
-            messageDom.style.display = '';
-        }
 
         displayBeforeEdit(message.id, message.channel_id, messageDom);
     }
@@ -116,6 +107,10 @@ function block(payload: AnyDispatchPayload) {
     if (payload.type === 'MESSAGE_UPDATE') {
         const message = payload.message;
         if (!message || !message.id) return;
+
+        if (ignoredChannels.includes(message.channel_id) || ignoredUsers.includes(message.author.id)) {
+            return;
+        }
 
         const messageStore = getMessageStore();
         const oldMessage = messageStore.getMessage(message.channel_id, message.id);
