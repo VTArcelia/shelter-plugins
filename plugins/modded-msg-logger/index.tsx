@@ -166,9 +166,9 @@ function displayBeforeEdit(messageId: string, channelId: string, messageDom: HTM
     const beforeEditContainer = document.createElement('span');
     beforeEditContainer.classList.add('nea-before-edit');
     if(!showDiffs){
-        beforeEditContainer.innerHTML = `\nBefore Edit: ${previousContent}`;
+        beforeEditContainer.innerHTML = `\nPrev: ${previousContent}`;
     } else {
-        beforeEditContainer.innerHTML = `\nBefore Edit: ${diffHtml}`;
+        beforeEditContainer.innerHTML = `\nDif: ${diffHtml}`;
     }
 
     messageContent.appendChild(beforeEditContainer);
