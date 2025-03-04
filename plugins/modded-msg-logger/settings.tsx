@@ -1,16 +1,18 @@
 import { Component } from 'solid-js';
 const { plugin, solid, ui } = shelter;
-import { setShowEditHistory, setShowDiffs } from './index';
+import { setShowEditHistory, setShowDiffs, setUseWhitelist } from './index';
 
 export const settings: Component = () => {
     const [ignoredUsersString, setIgnoredUsersString] = solid.createSignal(plugin.store.ignoredUsers || '');
     const [ignoredChannelsString, setIgnoredChannelsString] = solid.createSignal(plugin.store.ignoredChannels || '');
     const [showDiffsValue, setShowDiffsValue] = solid.createSignal(plugin.store.showDiffs !== false);
+    const [useWhitelistValue, setUseWhitelistValue] = solid.createSignal(plugin.store.useWhitelist === true);
 
     function saveSettings() {
         plugin.store.ignoredUsers = ignoredUsersString();
         plugin.store.ignoredChannels = ignoredChannelsString();
         plugin.store.showDiffs = showDiffsValue();
+        plugin.store.useWhitelist = useWhitelistValue();
         ui.showToast("Settings saved!", { type: "success" });
         updateIgnoredUsers();
         updateIgnoredChannels();
@@ -48,7 +50,18 @@ export const settings: Component = () => {
                 Show Diffs
             </ui.SwitchItem>
 
-            <ui.Header tag={ui.HeaderTags.H3}>Ignored User IDs</ui.Header>
+            <ui.SwitchItem
+                value={useWhitelistValue()}
+                onChange={(value) => {
+                    setUseWhitelistValue(value);
+                    setUseWhitelist(value);
+                }}
+                note="Only log messages from the specified users and channels"
+            >
+                Use as Whitelist
+            </ui.SwitchItem>
+
+            <ui.Header tag={ui.HeaderTags.H3}>Users</ui.Header>
             <ui.TextBox
                 placeholder="Enter user IDs (comma-separated)"
                 value={ignoredUsersString()}
@@ -57,7 +70,7 @@ export const settings: Component = () => {
                 multiline
             />
 
-            <ui.Header tag={ui.HeaderTags.H3}>Ignored Channel IDs</ui.Header>
+            <ui.Header tag={ui.HeaderTags.H3}>Channels</ui.Header>
             <ui.TextBox
                 placeholder="Enter channel IDs (comma-separated)"
                 value={ignoredChannelsString()}

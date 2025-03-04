@@ -7,6 +7,7 @@ const uninjectCss = ui.injectCss(css);
 
 let ignoredUsers: string[] = [];
 let ignoredChannels: string[] = [];
+let useWhitelist: boolean = plugin.store.useWhitelist === true;
 const messageEditHistory: Record<string, string> = {};
 
 let showEditHistory: boolean = plugin.store.showEditHistory !== false;
@@ -45,6 +46,7 @@ export function onLoad() {
     updateIgnoredChannels();
     showEditHistory = plugin.store.showEditHistory !== false;
     showDiffs = plugin.store.showDiffs !== false;
+    useWhitelist = plugin.store.useWhitelist === true;
     updateMessageDisplay();
 }
 
@@ -81,14 +83,22 @@ function block(payload: AnyDispatchPayload) {
         let storedMessage = messageStore.getMessage(payload.channelId, payload.id);
         if (!storedMessage) return;
 
-        if (ignoredUsers.includes(storedMessage.author.id) || ignoredChannels.includes(storedMessage.channel_id)) {
-            return;
+        const isIgnoredUser = ignoredUsers.includes(storedMessage.author.id);
+        const isIgnoredChannel = ignoredChannels.includes(storedMessage.channel_id);
+
+        let shouldBlock = false;
+        if (useWhitelist) {
+            shouldBlock = !(isIgnoredUser || isIgnoredChannel); // Invert the logic
+        } else {
+            shouldBlock = isIgnoredUser || isIgnoredChannel;
         }
+
+        if (shouldBlock) return;
 
         let replacementPayload: AnyDispatchPayload = {
             type: 'MESSAGE_UPDATE',
             guildId: payload.guildId,
-            message: { ...storedMessage.toJS(), edited_timestamp: oldTimeStamp, flags: 64 }, // Set the flag here
+            message: { ...storedMessage.toJS(), edited_timestamp: oldTimeStamp, flags: 64 },
         };
         setTimeout(() => attachDismissListener(storedMessage.channel_id, storedMessage.id), 100);
         return replacementPayload;
@@ -98,14 +108,23 @@ function block(payload: AnyDispatchPayload) {
         const message = payload.message;
         if (!message || !message.id) return;
 
-        if (ignoredChannels.includes(message.channel_id) || ignoredUsers.includes(message.author.id)) {
-            return;
-        }
-
         const messageStore = getMessageStore();
         const oldMessage = messageStore.getMessage(message.channel_id, message.id);
+        if (!oldMessage) return;
 
-        if (oldMessage && oldMessage.content !== message.content) {
+        const isIgnoredUser = ignoredUsers.includes(message.author.id);
+        const isIgnoredChannel = ignoredChannels.includes(message.channel_id);
+
+        let shouldBlock = false;
+        if (useWhitelist) {
+            shouldBlock = !(isIgnoredUser || isIgnoredChannel); // Invert the logic
+        } else {
+            shouldBlock = isIgnoredUser || isIgnoredChannel;
+        }
+
+        if (shouldBlock) return;
+
+        if (oldMessage.content !== message.content) {
             messageEditHistory[message.id] = oldMessage.content;
         }
 
@@ -206,5 +225,11 @@ export function setShowEditHistory(value: boolean) {
 export function setShowDiffs(value: boolean) {
     showDiffs = value;
     plugin.store.showDiffs = value;
+    updateMessageDisplay();
+}
+
+export function setUseWhitelist(value: boolean) {
+    useWhitelist = value;
+    plugin.store.useWhitelist = value;
     updateMessageDisplay();
 }
