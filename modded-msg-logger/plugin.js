@@ -75,10 +75,12 @@ const settings = () => {
 	const [ignoredUsersString, setIgnoredUsersString] = solid.createSignal(plugin$1.store.ignoredUsers || "");
 	const [ignoredChannelsString, setIgnoredChannelsString] = solid.createSignal(plugin$1.store.ignoredChannels || "");
 	const [showDiffsValue, setShowDiffsValue] = solid.createSignal(plugin$1.store.showDiffs !== false);
+	const [useWhitelistValue, setUseWhitelistValue] = solid.createSignal(plugin$1.store.useWhitelist === true);
 	function saveSettings() {
 		plugin$1.store.ignoredUsers = ignoredUsersString();
 		plugin$1.store.ignoredChannels = ignoredChannelsString();
 		plugin$1.store.showDiffs = showDiffsValue();
+		plugin$1.store.useWhitelist = useWhitelistValue();
 		ui$1.showToast("Settings saved!", { type: "success" });
 		updateIgnoredUsers$1();
 		updateIgnoredChannels$1();
@@ -112,11 +114,22 @@ const settings = () => {
 			note: "Highlight added and deleted words in the before edit text",
 			children: "Show Diffs"
 		}),
+		(0, import_web$3.createComponent)(ui$1.SwitchItem, {
+			get value() {
+				return useWhitelistValue();
+			},
+			onChange: (value) => {
+				setUseWhitelistValue(value);
+				setUseWhitelist(value);
+			},
+			note: "Only log messages from the specified users and channels",
+			children: "Use as Whitelist"
+		}),
 		(0, import_web$3.createComponent)(ui$1.Header, {
 			get tag() {
 				return ui$1.HeaderTags.H3;
 			},
-			children: "Ignored User IDs"
+			children: "Users"
 		}),
 		(0, import_web$3.createComponent)(ui$1.TextBox, {
 			placeholder: "Enter user IDs (comma-separated)",
@@ -135,7 +148,7 @@ const settings = () => {
 			get tag() {
 				return ui$1.HeaderTags.H3;
 			},
-			children: "Ignored Channel IDs"
+			children: "Channels"
 		}),
 		(0, import_web$3.createComponent)(ui$1.TextBox, {
 			placeholder: "Enter channel IDs (comma-separated)",
@@ -171,6 +184,7 @@ const unintercept = flux.intercept(block);
 const uninjectCss = ui.injectCss(modded_msg_logger_default);
 let ignoredUsers = [];
 let ignoredChannels = [];
+let useWhitelist = plugin.store.useWhitelist === true;
 const messageEditHistory = {};
 let showEditHistory = plugin.store.showEditHistory !== false;
 let showDiffs = plugin.store.showDiffs !== false;
@@ -199,6 +213,7 @@ function onLoad() {
 	updateIgnoredChannels();
 	showEditHistory = plugin.store.showEditHistory !== false;
 	showDiffs = plugin.store.showDiffs !== false;
+	useWhitelist = plugin.store.useWhitelist === true;
 	updateMessageDisplay();
 }
 const oldTimeStamp = "2001-09-11T12:46:30.000Z";
@@ -225,7 +240,12 @@ function block(payload) {
 		if (!messageStore) return;
 		let storedMessage = messageStore.getMessage(payload.channelId, payload.id);
 		if (!storedMessage) return;
-		if (ignoredUsers.includes(storedMessage.author.id) || ignoredChannels.includes(storedMessage.channel_id)) return;
+		const isIgnoredUser = ignoredUsers.includes(storedMessage.author.id);
+		const isIgnoredChannel = ignoredChannels.includes(storedMessage.channel_id);
+		let shouldBlock = false;
+		if (useWhitelist) shouldBlock = !(isIgnoredUser || isIgnoredChannel);
+else shouldBlock = isIgnoredUser || isIgnoredChannel;
+		if (shouldBlock) return;
 		let replacementPayload = {
 			type: "MESSAGE_UPDATE",
 			guildId: payload.guildId,
@@ -241,10 +261,16 @@ function block(payload) {
 	if (payload.type === "MESSAGE_UPDATE") {
 		const message = payload.message;
 		if (!message || !message.id) return;
-		if (ignoredChannels.includes(message.channel_id) || ignoredUsers.includes(message.author.id)) return;
 		const messageStore = getMessageStore();
 		const oldMessage = messageStore.getMessage(message.channel_id, message.id);
-		if (oldMessage && oldMessage.content !== message.content) messageEditHistory[message.id] = oldMessage.content;
+		if (!oldMessage) return;
+		const isIgnoredUser = ignoredUsers.includes(message.author.id);
+		const isIgnoredChannel = ignoredChannels.includes(message.channel_id);
+		let shouldBlock = false;
+		if (useWhitelist) shouldBlock = !(isIgnoredUser || isIgnoredChannel);
+else shouldBlock = isIgnoredUser || isIgnoredChannel;
+		if (shouldBlock) return;
+		if (oldMessage.content !== message.content) messageEditHistory[message.id] = oldMessage.content;
 		setTimeout(() => {
 			const messageDom = document.getElementById(`chat-messages-${message.channel_id}-${message.id}`);
 			if (messageDom) displayBeforeEdit(message.id, message.channel_id, messageDom);
@@ -311,12 +337,18 @@ function setShowDiffs(value) {
 	plugin.store.showDiffs = value;
 	updateMessageDisplay();
 }
+function setUseWhitelist(value) {
+	useWhitelist = value;
+	plugin.store.useWhitelist = value;
+	updateMessageDisplay();
+}
 
 //#endregion
 exports.onLoad = onLoad
 exports.onUnload = onUnload
 exports.setShowDiffs = setShowDiffs
 exports.setShowEditHistory = setShowEditHistory
+exports.setUseWhitelist = setUseWhitelist
 exports.settings = settings
 return exports;
 })({});
