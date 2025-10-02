@@ -196,6 +196,34 @@ function updateIgnoredChannels() {
 	const ignoredChannelsString = plugin.store.ignoredChannels || "";
 	ignoredChannels = ignoredChannelsString.split(",").map((id) => id.trim()).filter((id) => id);
 }
+function attachDismissListener(channelId, messageId) {
+	const messageDom = document.getElementById(`chat-messages-${channelId}-${messageId}`);
+	if (!messageDom) return;
+	const ephemeralContainer = messageDom.querySelector(`[class*="ephemeralMessage"]`) || messageDom.querySelector(`[class*="ephemeral"]`) || null;
+	if (!ephemeralContainer) return;
+	const candidates = Array.from(ephemeralContainer.querySelectorAll("[role=\"button\"], button, a"));
+	const dismissButton = candidates.find((el) => {
+		const aria = (el.getAttribute("aria-label") || "").toLowerCase();
+		const txt = (el.textContent || "").trim().toLowerCase();
+		const cls = (el.className || "").toLowerCase();
+		return aria.includes("dismiss") || txt === "dismiss" || txt.includes("dismiss") || cls.includes("dismiss");
+	}) || null;
+	if (!dismissButton) return;
+	if (dismissButton.dataset.dismissListenerAdded === "true") return;
+	dismissButton.addEventListener("click", (e) => {
+		try {
+			e.stopPropagation();
+			e.preventDefault();
+		} catch (err) {}
+		flux.dispatcher.dispatch({
+			type: "MESSAGE_DELETE",
+			channelId,
+			id: messageId,
+			dismissed: true
+		});
+	});
+	dismissButton.dataset.dismissListenerAdded = "true";
+}
 function updateMessageDisplay() {
 	const messageStore = getMessageStore();
 	if (!messageStore) return;
@@ -205,6 +233,8 @@ function updateMessageDisplay() {
 		const messageDom = document.getElementById(`chat-messages-${message.channel_id}-${message.id}`);
 		if (!messageDom) continue;
 		displayBeforeEdit(message.id, message.channel_id, messageDom);
+		const hasEphemeral = !!messageDom.querySelector(`[class*="ephemeralMessage"]`) || !!messageDom.querySelector(`[class*="ephemeral"]`);
+		if (hasEphemeral) attachDismissListener(message.channel_id, message.id);
 	}
 }
 function onLoad() {
@@ -217,22 +247,6 @@ function onLoad() {
 	updateMessageDisplay();
 }
 const oldTimeStamp = "2001-09-11T12:46:30.000Z";
-function attachDismissListener(channelId, messageId) {
-	const messageDom = document.getElementById(`chat-messages-${channelId}-${messageId}`);
-	if (!messageDom) return;
-	const dismissButton = messageDom.querySelector(`[class*="ephemeralMessage"] a[role="button"][tabindex="0"]`);
-	if (!dismissButton) return;
-	if (dismissButton.dataset.dismissListenerAdded === "true") return;
-	dismissButton.onclick = () => {
-		flux.dispatcher.dispatch({
-			type: "MESSAGE_DELETE",
-			channelId,
-			id: messageId,
-			dismissed: true
-		});
-	};
-	dismissButton.dataset.dismissListenerAdded = "true";
-}
 function block(payload) {
 	if (payload.type === "MESSAGE_DELETE") {
 		if (payload.dismissed) return;
@@ -255,7 +269,9 @@ else shouldBlock = isIgnoredUser || isIgnoredChannel;
 				flags: 64
 			}
 		};
-		setTimeout(() => attachDismissListener(storedMessage.channel_id, storedMessage.id), 100);
+		setTimeout(() => {
+			attachDismissListener(storedMessage.channel_id, storedMessage.id);
+		}, 120);
 		return replacementPayload;
 	}
 	if (payload.type === "MESSAGE_UPDATE") {
@@ -273,8 +289,12 @@ else shouldBlock = isIgnoredUser || isIgnoredChannel;
 		if (oldMessage.content !== message.content) messageEditHistory[message.id] = oldMessage.content;
 		setTimeout(() => {
 			const messageDom = document.getElementById(`chat-messages-${message.channel_id}-${message.id}`);
-			if (messageDom) displayBeforeEdit(message.id, message.channel_id, messageDom);
-		}, 100);
+			if (messageDom) {
+				displayBeforeEdit(message.id, message.channel_id, messageDom);
+				const hasEphemeral = !!messageDom.querySelector(`[class*="ephemeralMessage"]`) || !!messageDom.querySelector(`[class*="ephemeral"]`);
+				if (hasEphemeral) attachDismissListener(message.channel_id, message.id);
+			}
+		}, 120);
 	}
 	return;
 }
