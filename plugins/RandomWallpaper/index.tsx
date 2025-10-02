@@ -29,7 +29,12 @@ function pickRandom(): string {
 
 function applyWallpaper(url: string): void {
   if (uninject) uninject();
-  uninject = ui.injectCss(`:root { --cv-random-wallpaper: url("${url}"); }`);
+  uninject = ui.injectCss(`
+    :root {
+      --cv-random-wallpaper: url("${url}");
+      --background-image: var(--cv-random-wallpaper) !important;
+    }
+  `);
 }
 
 export function onLoad(): void {
