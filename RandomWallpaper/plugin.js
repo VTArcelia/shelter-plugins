@@ -51,7 +51,12 @@ function pickRandom() {
 }
 function applyWallpaper(url) {
 	if (uninject) uninject();
-	uninject = shelter.ui.injectCss(`:root { --cv-random-wallpaper: url("${url}"); }`);
+	uninject = shelter.ui.injectCss(`
+    :root {
+      --cv-random-wallpaper: url("${url}");
+      --background-image: var(--cv-random-wallpaper) !important;
+    }
+  `);
 }
 function onLoad() {
 	applyWallpaper(pickRandom());
