@@ -13,13 +13,22 @@ const defaultWallpapers: string[] = [
   "https://i.postimg.cc/Gtrf5v1K/77ff256734a6445853508da6556689449d01ab44.jpg",
   "https://i.postimg.cc/d3BfPDqm/b2c3c6940fd1e567aeccfd909528578beeeb2bb1.jpg",
   "https://i.postimg.cc/BbszV2GL/bec63fcbb94103343d808a09c7e1f2e63b31e7a0.jpg",
-  "https://i.postimg.cc/xCL75tBD/c29e6dac572e634949c8d90cfb9da7b03103f233.jpg"
+  "https://i.postimg.cc/xCL75tBD/c29e6dac572e634949c8d90cfb9da7b03103f233.jpg",
 ];
 
 function getWallpapers(): string[] {
-  const stored = plugin.store.wallpapers || "";
-  const userList = stored.split(",").map(url => url.trim()).filter(url => url);
-  return userList.length > 0 ? userList : defaultWallpapers;
+  const stored = plugin.store.wallpapers;
+  if (Array.isArray(stored)) {
+    return stored.length > 0 ? stored : defaultWallpapers;
+  }
+  if (typeof stored === "string") {
+    const userList = stored
+      .split(",")
+      .map((url) => url.trim())
+      .filter((url) => url);
+    return userList.length > 0 ? userList : defaultWallpapers;
+  }
+  return defaultWallpapers;
 }
 
 function pickRandom(): string {
@@ -29,11 +38,9 @@ function pickRandom(): string {
 
 function applyWallpaper(url: string): void {
   if (uninject) uninject();
-  uninject = ui.injectCss(`
-    :root {
-      --cv-random-wallpaper: url("${url}");
-      --background-image: var(--cv-random-wallpaper) !important;
-    }
+  uninject = ui.injectCss(`  
+    :root {         --cv-random-wallpaper: url("${url}");         --background-image: var(--cv-random-wallpaper) !important;  
+    }  
   `);
 }
 
@@ -42,9 +49,12 @@ export function onLoad(): void {
 
   if (plugin.store.rotationEnabled) {
     const intervalMinutes = Number(plugin.store.rotationInterval) || 5;
-    intervalId = setInterval(() => {
-      applyWallpaper(pickRandom());
-    }, intervalMinutes * 60 * 1000);
+    intervalId = setInterval(
+      () => {
+        applyWallpaper(pickRandom());
+      },
+      intervalMinutes * 60 * 1000,
+    );
   }
 }
 
@@ -59,19 +69,25 @@ export function onUnload(): void {
 }
 
 export const settings = () => {
-  const initialUrls = (plugin.store.wallpapers || "")
-    .split(",")
-    .map((url: string) => url.trim())
-    .filter((url: string) => url);
+  const initialUrls: string[] = Array.isArray(plugin.store.wallpapers)
+    ? plugin.store.wallpapers
+    : (plugin.store.wallpapers || "")
+        .split(",")
+        .map((url: string) => url.trim())
+        .filter((url: string) => url);
 
   const [urls, setUrls] = solid.createSignal<string[]>(initialUrls);
   const [newUrl, setNewUrl] = solid.createSignal("");
-  const [rotationEnabled, setRotationEnabled] = solid.createSignal(plugin.store.rotationEnabled || false);
-  const [rotationInterval, setRotationInterval] = solid.createSignal(plugin.store.rotationInterval || 5);
+  const [rotationEnabled, setRotationEnabled] = solid.createSignal(
+    plugin.store.rotationEnabled || false,
+  );
+  const [rotationInterval, setRotationInterval] = solid.createSignal(
+    plugin.store.rotationInterval || 5,
+  );
 
   function save(updatedUrls?: string[]) {
     const urlsToSave = updatedUrls ?? urls();
-    plugin.store.wallpapers = urlsToSave.join(",");
+    plugin.store.wallpapers = urlsToSave;
     plugin.store.rotationEnabled = rotationEnabled();
     plugin.store.rotationInterval = rotationInterval();
     ui.showToast("Settings saved!", { type: "success" });
@@ -120,7 +136,10 @@ export const settings = () => {
 
       <ui.SwitchItem
         value={rotationEnabled()}
-        onChange={(v: boolean) => setRotationEnabled(v)}
+        onChange={(v: boolean) => {
+          setRotationEnabled(v);
+          save();
+        }}
         note="Pick a new wallpaper every X minutes"
       >
         Enable rotation
@@ -128,13 +147,14 @@ export const settings = () => {
 
       <ui.TextBox
         value={String(rotationInterval())}
-        onInput={(v: string) => setRotationInterval(Number(v))}
+        onInput={(v: string) => {
+          setRotationInterval(Number(v));
+          save();
+        }}
         placeholder="Rotation interval in minutes"
         type="number"
         style={{ width: "100px" }}
       />
-
-      <ui.Button onClick={() => save()}>Save</ui.Button>
     </div>
   );
 };
