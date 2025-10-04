@@ -59,39 +59,82 @@ export function onUnload(): void {
 }
 
 export const settings = () => {
-  const [urls, setUrls] = solid.createSignal(plugin.store.wallpapers || "");
+  const initialUrls = (plugin.store.wallpapers || "")
+    .split(",")
+    .map((url: string) => url.trim())
+    .filter((url: string) => url);
+
+  const [urls, setUrls] = solid.createSignal<string[]>(initialUrls);
+  const [newUrl, setNewUrl] = solid.createSignal("");
   const [rotationEnabled, setRotationEnabled] = solid.createSignal(plugin.store.rotationEnabled || false);
   const [rotationInterval, setRotationInterval] = solid.createSignal(plugin.store.rotationInterval || 5);
 
-  function save() {
-    plugin.store.wallpapers = urls();
+  function save(updatedUrls?: string[]) {
+    const urlsToSave = updatedUrls ?? urls();
+    plugin.store.wallpapers = urlsToSave.join(",");
     plugin.store.rotationEnabled = rotationEnabled();
     plugin.store.rotationInterval = rotationInterval();
     ui.showToast("Settings saved!", { type: "success" });
   }
 
-  return [
-    solid.createComponent(ui.Header, { tag: ui.HeaderTags.H3, children: "Wallpaper URLs (comma-separated)" }),
-    solid.createComponent(ui.TextBox, {
-      get value() { return urls(); },
-      onInput: (v: string) => setUrls(v),
-      placeholder: "Enter wallpaper URLs separated by commas",
-      multiline: true,
-      style: { width: "100%", minHeight: "100px", resize: "vertical" }
-    }),
-    solid.createComponent(ui.SwitchItem, {
-      get value() { return rotationEnabled(); },
-      onChange: (v: boolean) => setRotationEnabled(v),
-      children: "Enable rotation",
-      note: "Pick a new wallpaper every X minutes"
-    }),
-    solid.createComponent(ui.TextBox, {
-      get value() { return String(rotationInterval()); },
-      onInput: (v: string) => setRotationInterval(Number(v)),
-      placeholder: "Rotation interval in minutes",
-      type: "number",
-      style: { width: "100px", marginTop: "5px" }
-    }),
-    solid.createComponent(ui.Button, { onClick: save, children: "Save" })
-  ];
+  function addUrl() {
+    const url = newUrl().trim();
+    if (!url) return;
+    const updated = [...urls(), url];
+    setUrls(updated);
+    setNewUrl("");
+    save(updated);
+  }
+
+  function removeUrl(index: number) {
+    const updated = [...urls()];
+    updated.splice(index, 1);
+    setUrls(updated);
+    save(updated);
+  }
+
+  return (
+    <div style={{ display: "flex", "flex-direction": "column", gap: "10px" }}>
+      <ui.Header tag={ui.HeaderTags.H3}>Wallpaper URLs</ui.Header>
+
+      <div style={{ display: "flex", gap: "5px" }}>
+        <ui.TextBox
+          value={newUrl()}
+          onInput={(v: string) => setNewUrl(v)}
+          placeholder="Enter wallpaper URL"
+          style={{ flex: 1 }}
+        />
+        <ui.Button onClick={addUrl}>Add</ui.Button>
+      </div>
+
+      <solid.For each={urls()}>
+        {(url, index) => (
+          <div style={{ display: "flex", gap: "5px", "align-items": "center" }}>
+            <span style={{ flex: 1, "word-break": "break-all" }}>{url}</span>
+            <ui.Button color="red" onClick={() => removeUrl(index())}>
+              Remove
+            </ui.Button>
+          </div>
+        )}
+      </solid.For>
+
+      <ui.SwitchItem
+        value={rotationEnabled()}
+        onChange={(v: boolean) => setRotationEnabled(v)}
+        note="Pick a new wallpaper every X minutes"
+      >
+        Enable rotation
+      </ui.SwitchItem>
+
+      <ui.TextBox
+        value={String(rotationInterval())}
+        onInput={(v: string) => setRotationInterval(Number(v))}
+        placeholder="Rotation interval in minutes"
+        type="number"
+        style={{ width: "100px" }}
+      />
+
+      <ui.Button onClick={() => save()}>Save</ui.Button>
+    </div>
+  );
 };
