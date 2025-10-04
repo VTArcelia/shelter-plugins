@@ -40,7 +40,7 @@ var import_web$1 = __toESM(require_web(), 1);
 var import_web$2 = __toESM(require_web(), 1);
 var import_web$3 = __toESM(require_web(), 1);
 var import_web$4 = __toESM(require_web(), 1);
-const _tmpl$ = /*#__PURE__*/ (0, import_web.template)(`<div><!#><!/><div><!#><!/><!#><!/></div><!#><!/><!#><!/><!#><!/><!#><!/></div>`, 18), _tmpl$2 = /*#__PURE__*/ (0, import_web.template)(`<div><span></span><!#><!/></div>`, 6);
+const _tmpl$ = /*#__PURE__*/ (0, import_web.template)(`<div><!#><!/><div><!#><!/><!#><!/></div><!#><!/><!#><!/><!#><!/></div>`, 16), _tmpl$2 = /*#__PURE__*/ (0, import_web.template)(`<div><span></span><!#><!/></div>`, 6);
 let uninject = null;
 let intervalId = null;
 const defaultWallpapers = [
@@ -55,9 +55,13 @@ const defaultWallpapers = [
 	"https://i.postimg.cc/xCL75tBD/c29e6dac572e634949c8d90cfb9da7b03103f233.jpg"
 ];
 function getWallpapers() {
-	const stored = shelter.plugin.store.wallpapers || "";
-	const userList = stored.split(",").map((url) => url.trim()).filter((url) => url);
-	return userList.length > 0 ? userList : defaultWallpapers;
+	const stored = shelter.plugin.store.wallpapers;
+	if (Array.isArray(stored)) return stored.length > 0 ? stored : defaultWallpapers;
+	if (typeof stored === "string") {
+		const userList = stored.split(",").map((url) => url.trim()).filter((url) => url);
+		return userList.length > 0 ? userList : defaultWallpapers;
+	}
+	return defaultWallpapers;
 }
 function pickRandom() {
 	const wallpapers = getWallpapers();
@@ -65,11 +69,9 @@ function pickRandom() {
 }
 function applyWallpaper(url) {
 	if (uninject) uninject();
-	uninject = shelter.ui.injectCss(`
-    :root {
-      --cv-random-wallpaper: url("${url}");
-      --background-image: var(--cv-random-wallpaper) !important;
-    }
+	uninject = shelter.ui.injectCss(`  
+    :root {         --cv-random-wallpaper: url("${url}");         --background-image: var(--cv-random-wallpaper) !important;  
+    }  
   `);
 }
 function onLoad() {
@@ -90,14 +92,14 @@ function onUnload() {
 	}
 }
 const settings = () => {
-	const initialUrls = (shelter.plugin.store.wallpapers || "").split(",").map((url) => url.trim()).filter((url) => url);
+	const initialUrls = Array.isArray(shelter.plugin.store.wallpapers) ? shelter.plugin.store.wallpapers : (shelter.plugin.store.wallpapers || "").split(",").map((url) => url.trim()).filter((url) => url);
 	const [urls, setUrls] = shelter.solid.createSignal(initialUrls);
 	const [newUrl, setNewUrl] = shelter.solid.createSignal("");
 	const [rotationEnabled, setRotationEnabled] = shelter.solid.createSignal(shelter.plugin.store.rotationEnabled || false);
 	const [rotationInterval, setRotationInterval] = shelter.solid.createSignal(shelter.plugin.store.rotationInterval || 5);
 	function save(updatedUrls) {
 		const urlsToSave = updatedUrls ?? urls();
-		shelter.plugin.store.wallpapers = urlsToSave.join(",");
+		shelter.plugin.store.wallpapers = urlsToSave;
 		shelter.plugin.store.rotationEnabled = rotationEnabled();
 		shelter.plugin.store.rotationInterval = rotationInterval();
 		shelter.ui.showToast("Settings saved!", { type: "success" });
@@ -117,7 +119,7 @@ const settings = () => {
 		save(updated);
 	}
 	return (() => {
-		const _el$ = (0, import_web$1.getNextElement)(_tmpl$), _el$7 = _el$.firstChild, [_el$8, _co$3] = (0, import_web$2.getNextMarker)(_el$7.nextSibling), _el$2 = _el$8.nextSibling, _el$3 = _el$2.firstChild, [_el$4, _co$] = (0, import_web$2.getNextMarker)(_el$3.nextSibling), _el$5 = _el$4.nextSibling, [_el$6, _co$2] = (0, import_web$2.getNextMarker)(_el$5.nextSibling), _el$9 = _el$2.nextSibling, [_el$0, _co$4] = (0, import_web$2.getNextMarker)(_el$9.nextSibling), _el$1 = _el$0.nextSibling, [_el$10, _co$5] = (0, import_web$2.getNextMarker)(_el$1.nextSibling), _el$11 = _el$10.nextSibling, [_el$12, _co$6] = (0, import_web$2.getNextMarker)(_el$11.nextSibling), _el$13 = _el$12.nextSibling, [_el$14, _co$7] = (0, import_web$2.getNextMarker)(_el$13.nextSibling);
+		const _el$ = (0, import_web$1.getNextElement)(_tmpl$), _el$7 = _el$.firstChild, [_el$8, _co$3] = (0, import_web$2.getNextMarker)(_el$7.nextSibling), _el$2 = _el$8.nextSibling, _el$3 = _el$2.firstChild, [_el$4, _co$] = (0, import_web$2.getNextMarker)(_el$3.nextSibling), _el$5 = _el$4.nextSibling, [_el$6, _co$2] = (0, import_web$2.getNextMarker)(_el$5.nextSibling), _el$9 = _el$2.nextSibling, [_el$0, _co$4] = (0, import_web$2.getNextMarker)(_el$9.nextSibling), _el$1 = _el$0.nextSibling, [_el$10, _co$5] = (0, import_web$2.getNextMarker)(_el$1.nextSibling), _el$11 = _el$10.nextSibling, [_el$12, _co$6] = (0, import_web$2.getNextMarker)(_el$11.nextSibling);
 		_el$.style.setProperty("display", "flex");
 		_el$.style.setProperty("flex-direction", "column");
 		_el$.style.setProperty("gap", "10px");
@@ -146,26 +148,29 @@ const settings = () => {
 				return urls();
 			},
 			children: (url, index) => (() => {
-				const _el$15 = (0, import_web$1.getNextElement)(_tmpl$2), _el$16 = _el$15.firstChild, _el$17 = _el$16.nextSibling, [_el$18, _co$8] = (0, import_web$2.getNextMarker)(_el$17.nextSibling);
-				_el$15.style.setProperty("display", "flex");
-				_el$15.style.setProperty("gap", "5px");
-				_el$15.style.setProperty("align-items", "center");
-				_el$16.style.setProperty("flex", "1");
-				_el$16.style.setProperty("word-break", "break-all");
-				(0, import_web$3.insert)(_el$16, url);
-				(0, import_web$3.insert)(_el$15, (0, import_web$4.createComponent)(shelter.ui.Button, {
+				const _el$13 = (0, import_web$1.getNextElement)(_tmpl$2), _el$14 = _el$13.firstChild, _el$15 = _el$14.nextSibling, [_el$16, _co$7] = (0, import_web$2.getNextMarker)(_el$15.nextSibling);
+				_el$13.style.setProperty("display", "flex");
+				_el$13.style.setProperty("gap", "5px");
+				_el$13.style.setProperty("align-items", "center");
+				_el$14.style.setProperty("flex", "1");
+				_el$14.style.setProperty("word-break", "break-all");
+				(0, import_web$3.insert)(_el$14, url);
+				(0, import_web$3.insert)(_el$13, (0, import_web$4.createComponent)(shelter.ui.Button, {
 					color: "red",
 					onClick: () => removeUrl(index()),
 					children: "Remove"
-				}), _el$18, _co$8);
-				return _el$15;
+				}), _el$16, _co$7);
+				return _el$13;
 			})()
 		}), _el$0, _co$4);
 		(0, import_web$3.insert)(_el$, (0, import_web$4.createComponent)(shelter.ui.SwitchItem, {
 			get value() {
 				return rotationEnabled();
 			},
-			onChange: (v) => setRotationEnabled(v),
+			onChange: (v) => {
+				setRotationEnabled(v);
+				save();
+			},
 			note: "Pick a new wallpaper every X minutes",
 			children: "Enable rotation"
 		}), _el$10, _co$5);
@@ -173,15 +178,14 @@ const settings = () => {
 			get value() {
 				return String(rotationInterval());
 			},
-			onInput: (v) => setRotationInterval(Number(v)),
+			onInput: (v) => {
+				setRotationInterval(Number(v));
+				save();
+			},
 			placeholder: "Rotation interval in minutes",
 			type: "number",
 			style: { width: "100px" }
 		}), _el$12, _co$6);
-		(0, import_web$3.insert)(_el$, (0, import_web$4.createComponent)(shelter.ui.Button, {
-			onClick: () => save(),
-			children: "Save"
-		}), _el$14, _co$7);
 		return _el$;
 	})();
 };

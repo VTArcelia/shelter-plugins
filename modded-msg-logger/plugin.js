@@ -69,21 +69,58 @@ var import_web = __toESM(require_web(), 1);
 var import_web$1 = __toESM(require_web(), 1);
 var import_web$2 = __toESM(require_web(), 1);
 var import_web$3 = __toESM(require_web(), 1);
-const _tmpl$ = /*#__PURE__*/ (0, import_web.template)(`<div></div>`, 2);
+var import_web$4 = __toESM(require_web(), 1);
+const _tmpl$ = /*#__PURE__*/ (0, import_web.template)(`<div><!#><!/><!#><!/><!#><!/><!#><!/><!#><!/><div><!#><!/><!#><!/></div><!#><!/><!#><!/><div><!#><!/><!#><!/></div><!#><!/><div></div></div>`, 32), _tmpl$2 = /*#__PURE__*/ (0, import_web.template)(`<div><span></span><!#><!/></div>`, 6);
 const { plugin: plugin$1, solid, ui: ui$1 } = shelter;
 const settings = () => {
-	const [ignoredUsersString, setIgnoredUsersString] = solid.createSignal(plugin$1.store.ignoredUsers || "");
-	const [ignoredChannelsString, setIgnoredChannelsString] = solid.createSignal(plugin$1.store.ignoredChannels || "");
+	const initialUsers = (plugin$1.store.ignoredUsers || "").split(",").map((s) => s.trim()).filter(Boolean);
+	const initialChannels = (plugin$1.store.ignoredChannels || "").split(",").map((s) => s.trim()).filter(Boolean);
+	const [ignoredUsers$1, setIgnoredUsers] = solid.createSignal(initialUsers);
+	const [newUser, setNewUser] = solid.createSignal("");
+	const [ignoredChannels$1, setIgnoredChannels] = solid.createSignal(initialChannels);
+	const [newChannel, setNewChannel] = solid.createSignal("");
 	const [showDiffsValue, setShowDiffsValue] = solid.createSignal(plugin$1.store.showDiffs !== false);
 	const [useWhitelistValue, setUseWhitelistValue] = solid.createSignal(plugin$1.store.useWhitelist === true);
-	function saveSettings() {
-		plugin$1.store.ignoredUsers = ignoredUsersString();
-		plugin$1.store.ignoredChannels = ignoredChannelsString();
+	const [ignoreSelfValue, setIgnoreSelfValue] = solid.createSignal(plugin$1.store.ignoreSelf === true);
+	function save(users, channels) {
+		const u = users ?? ignoredUsers$1();
+		const c = channels ?? ignoredChannels$1();
+		plugin$1.store.ignoredUsers = u.join(",");
+		plugin$1.store.ignoredChannels = c.join(",");
 		plugin$1.store.showDiffs = showDiffsValue();
 		plugin$1.store.useWhitelist = useWhitelistValue();
+		plugin$1.store.ignoreSelf = ignoreSelfValue();
 		ui$1.showToast("Settings saved!", { type: "success" });
 		updateIgnoredUsers$1();
 		updateIgnoredChannels$1();
+	}
+	function addUser() {
+		const id = newUser().trim();
+		if (!id) return;
+		const updated = [...ignoredUsers$1(), id];
+		setIgnoredUsers(updated);
+		setNewUser("");
+		save(updated, ignoredChannels$1());
+	}
+	function removeUser(index) {
+		const updated = [...ignoredUsers$1()];
+		updated.splice(index, 1);
+		setIgnoredUsers(updated);
+		save(updated, ignoredChannels$1());
+	}
+	function addChannel() {
+		const id = newChannel().trim();
+		if (!id) return;
+		const updated = [...ignoredChannels$1(), id];
+		setIgnoredChannels(updated);
+		setNewChannel("");
+		save(ignoredUsers$1(), updated);
+	}
+	function removeChannel(index) {
+		const updated = [...ignoredChannels$1()];
+		updated.splice(index, 1);
+		setIgnoredChannels(updated);
+		save(ignoredUsers$1(), updated);
 	}
 	let updateIgnoredUsers$1;
 	let updateIgnoredChannels$1;
@@ -91,8 +128,12 @@ const settings = () => {
 		updateIgnoredUsers$1 = window.updateIgnoredUsers;
 		updateIgnoredChannels$1 = window.updateIgnoredChannels;
 	});
-	return [
-		(0, import_web$3.createComponent)(ui$1.SwitchItem, {
+	return (() => {
+		const _el$ = (0, import_web$1.getNextElement)(_tmpl$), _el$11 = _el$.firstChild, [_el$12, _co$5] = (0, import_web$2.getNextMarker)(_el$11.nextSibling), _el$13 = _el$12.nextSibling, [_el$14, _co$6] = (0, import_web$2.getNextMarker)(_el$13.nextSibling), _el$15 = _el$14.nextSibling, [_el$16, _co$7] = (0, import_web$2.getNextMarker)(_el$15.nextSibling), _el$17 = _el$16.nextSibling, [_el$18, _co$8] = (0, import_web$2.getNextMarker)(_el$17.nextSibling), _el$19 = _el$18.nextSibling, [_el$20, _co$9] = (0, import_web$2.getNextMarker)(_el$19.nextSibling), _el$2 = _el$20.nextSibling, _el$3 = _el$2.firstChild, [_el$4, _co$] = (0, import_web$2.getNextMarker)(_el$3.nextSibling), _el$5 = _el$4.nextSibling, [_el$6, _co$2] = (0, import_web$2.getNextMarker)(_el$5.nextSibling), _el$21 = _el$2.nextSibling, [_el$22, _co$0] = (0, import_web$2.getNextMarker)(_el$21.nextSibling), _el$23 = _el$22.nextSibling, [_el$24, _co$1] = (0, import_web$2.getNextMarker)(_el$23.nextSibling), _el$7 = _el$24.nextSibling, _el$8 = _el$7.firstChild, [_el$9, _co$3] = (0, import_web$2.getNextMarker)(_el$8.nextSibling), _el$0 = _el$9.nextSibling, [_el$1, _co$4] = (0, import_web$2.getNextMarker)(_el$0.nextSibling), _el$25 = _el$7.nextSibling, [_el$26, _co$10] = (0, import_web$2.getNextMarker)(_el$25.nextSibling), _el$10 = _el$26.nextSibling;
+		_el$.style.setProperty("display", "flex");
+		_el$.style.setProperty("flex-direction", "column");
+		_el$.style.setProperty("gap", "12px");
+		(0, import_web$3.insert)(_el$, (0, import_web$4.createComponent)(ui$1.SwitchItem, {
 			get value() {
 				return plugin$1.store.showEditHistory !== false;
 			},
@@ -102,8 +143,8 @@ const settings = () => {
 			},
 			note: "Show message content before edits",
 			children: "Show Edit History"
-		}),
-		(0, import_web$3.createComponent)(ui$1.SwitchItem, {
+		}), _el$12, _co$5);
+		(0, import_web$3.insert)(_el$, (0, import_web$4.createComponent)(ui$1.SwitchItem, {
 			get value() {
 				return showDiffsValue();
 			},
@@ -113,8 +154,19 @@ const settings = () => {
 			},
 			note: "Highlight added and deleted words in the before edit text",
 			children: "Show Diffs"
-		}),
-		(0, import_web$3.createComponent)(ui$1.SwitchItem, {
+		}), _el$14, _co$6);
+		(0, import_web$3.insert)(_el$, (0, import_web$4.createComponent)(ui$1.SwitchItem, {
+			get value() {
+				return ignoreSelfValue();
+			},
+			onChange: (value) => {
+				setIgnoreSelfValue(value);
+				setIgnoreSelf(value);
+			},
+			note: "Ignore your own messages",
+			children: "Ignore Self"
+		}), _el$16, _co$7);
+		(0, import_web$3.insert)(_el$, (0, import_web$4.createComponent)(ui$1.SwitchItem, {
 			get value() {
 				return useWhitelistValue();
 			},
@@ -124,57 +176,96 @@ const settings = () => {
 			},
 			note: "Only log messages from the specified users and channels",
 			children: "Use as Whitelist"
-		}),
-		(0, import_web$3.createComponent)(ui$1.Header, {
+		}), _el$18, _co$8);
+		(0, import_web$3.insert)(_el$, (0, import_web$4.createComponent)(ui$1.Header, {
 			get tag() {
 				return ui$1.HeaderTags.H3;
 			},
 			children: "Users"
-		}),
-		(0, import_web$3.createComponent)(ui$1.TextBox, {
-			placeholder: "Enter user IDs (comma-separated)",
+		}), _el$20, _co$9);
+		_el$2.style.setProperty("display", "flex");
+		_el$2.style.setProperty("gap", "5px");
+		(0, import_web$3.insert)(_el$2, (0, import_web$4.createComponent)(ui$1.TextBox, {
 			get value() {
-				return ignoredUsersString();
+				return newUser();
 			},
-			onInput: (value) => setIgnoredUsersString(value),
-			style: {
-				width: "100%",
-				minHeight: "100px",
-				resize: "vertical"
+			onInput: (v) => setNewUser(v),
+			placeholder: "Enter a user ID",
+			style: { flex: 1 }
+		}), _el$4, _co$);
+		(0, import_web$3.insert)(_el$2, (0, import_web$4.createComponent)(ui$1.Button, {
+			onClick: addUser,
+			children: "Add"
+		}), _el$6, _co$2);
+		(0, import_web$3.insert)(_el$, (0, import_web$4.createComponent)(solid.For, {
+			get each() {
+				return ignoredUsers$1();
 			},
-			multiline: true
-		}),
-		(0, import_web$3.createComponent)(ui$1.Header, {
+			children: (id, index) => (() => {
+				const _el$27 = (0, import_web$1.getNextElement)(_tmpl$2), _el$28 = _el$27.firstChild, _el$29 = _el$28.nextSibling, [_el$30, _co$11] = (0, import_web$2.getNextMarker)(_el$29.nextSibling);
+				_el$27.style.setProperty("display", "flex");
+				_el$27.style.setProperty("gap", "5px");
+				_el$27.style.setProperty("align-items", "center");
+				_el$28.style.setProperty("flex", "1");
+				_el$28.style.setProperty("word-break", "break-all");
+				(0, import_web$3.insert)(_el$28, id);
+				(0, import_web$3.insert)(_el$27, (0, import_web$4.createComponent)(ui$1.Button, {
+					color: "red",
+					onClick: () => removeUser(index()),
+					children: "Remove"
+				}), _el$30, _co$11);
+				return _el$27;
+			})()
+		}), _el$22, _co$0);
+		(0, import_web$3.insert)(_el$, (0, import_web$4.createComponent)(ui$1.Header, {
 			get tag() {
 				return ui$1.HeaderTags.H3;
 			},
 			children: "Channels"
-		}),
-		(0, import_web$3.createComponent)(ui$1.TextBox, {
-			placeholder: "Enter channel IDs (comma-separated)",
+		}), _el$24, _co$1);
+		_el$7.style.setProperty("display", "flex");
+		_el$7.style.setProperty("gap", "5px");
+		(0, import_web$3.insert)(_el$7, (0, import_web$4.createComponent)(ui$1.TextBox, {
 			get value() {
-				return ignoredChannelsString();
+				return newChannel();
 			},
-			onInput: (value) => setIgnoredChannelsString(value),
-			style: {
-				width: "100%",
-				minHeight: "100px",
-				resize: "vertical"
+			onInput: (v) => setNewChannel(v),
+			placeholder: "Enter a channel ID",
+			style: { flex: 1 }
+		}), _el$9, _co$3);
+		(0, import_web$3.insert)(_el$7, (0, import_web$4.createComponent)(ui$1.Button, {
+			onClick: addChannel,
+			children: "Add"
+		}), _el$1, _co$4);
+		(0, import_web$3.insert)(_el$, (0, import_web$4.createComponent)(solid.For, {
+			get each() {
+				return ignoredChannels$1();
 			},
-			multiline: true
-		}),
-		(() => {
-			const _el$ = (0, import_web$1.getNextElement)(_tmpl$);
-			_el$.style.setProperty("display", "flex");
-			_el$.style.setProperty("justifyContent", "center");
-			_el$.style.setProperty("marginTop", "10px");
-			(0, import_web$2.insert)(_el$, (0, import_web$3.createComponent)(ui$1.Button, {
-				onClick: saveSettings,
-				children: "Save"
-			}));
-			return _el$;
-		})()
-	];
+			children: (id, index) => (() => {
+				const _el$31 = (0, import_web$1.getNextElement)(_tmpl$2), _el$32 = _el$31.firstChild, _el$33 = _el$32.nextSibling, [_el$34, _co$12] = (0, import_web$2.getNextMarker)(_el$33.nextSibling);
+				_el$31.style.setProperty("display", "flex");
+				_el$31.style.setProperty("gap", "5px");
+				_el$31.style.setProperty("align-items", "center");
+				_el$32.style.setProperty("flex", "1");
+				_el$32.style.setProperty("word-break", "break-all");
+				(0, import_web$3.insert)(_el$32, id);
+				(0, import_web$3.insert)(_el$31, (0, import_web$4.createComponent)(ui$1.Button, {
+					color: "red",
+					onClick: () => removeChannel(index()),
+					children: "Remove"
+				}), _el$34, _co$12);
+				return _el$31;
+			})()
+		}), _el$26, _co$10);
+		_el$10.style.setProperty("display", "flex");
+		_el$10.style.setProperty("justify-content", "center");
+		_el$10.style.setProperty("margin-top", "10px");
+		(0, import_web$3.insert)(_el$10, (0, import_web$4.createComponent)(ui$1.Button, {
+			onClick: () => save(),
+			children: "Save"
+		}));
+		return _el$;
+	})();
 };
 
 //#endregion
@@ -185,21 +276,53 @@ const uninjectCss = ui.injectCss(modded_msg_logger_default);
 let ignoredUsers = [];
 let ignoredChannels = [];
 let useWhitelist = plugin.store.useWhitelist === true;
+let ignoreSelf = plugin.store.ignoreSelf !== false;
 const messageEditHistory = {};
 let showEditHistory = plugin.store.showEditHistory !== false;
 let showDiffs = plugin.store.showDiffs !== false;
+function getSelfId() {
+	try {
+		const a = shelter.auth;
+		if (a) {
+			if (typeof a.userId !== "undefined" && a.userId) return a.userId;
+			if (a.user && a.user.id) return a.user.id;
+			if (typeof a.getUserId === "function") {
+				const id = a.getUserId();
+				if (id) return id;
+			}
+		}
+	} catch {}
+	try {
+		const userStore = shelter.flux?.stores?.UserStore;
+		if (userStore) {
+			if (typeof userStore.getCurrentUserId === "function") {
+				const id = userStore.getCurrentUserId();
+				if (id) return id;
+			}
+			if (typeof userStore.getCurrentUser === "function") {
+				const u = userStore.getCurrentUser();
+				if (u && u.id) return u.id;
+			}
+		}
+	} catch {}
+	return null;
+}
 function updateIgnoredUsers() {
 	const ignoredUsersString = plugin.store.ignoredUsers || "";
-	ignoredUsers = ignoredUsersString.split(",").map((id) => id.trim()).filter((id) => id);
+	ignoredUsers = ignoredUsersString.split(",").map((id) => id.trim()).filter(Boolean);
+	const self = getSelfId();
+	if (ignoreSelf && self && !ignoredUsers.includes(self)) ignoredUsers.push(self);
 }
 function updateIgnoredChannels() {
 	const ignoredChannelsString = plugin.store.ignoredChannels || "";
-	ignoredChannels = ignoredChannelsString.split(",").map((id) => id.trim()).filter((id) => id);
+	ignoredChannels = ignoredChannelsString.split(",").map((id) => id.trim()).filter(Boolean);
 }
+window.updateIgnoredUsers = updateIgnoredUsers;
+window.updateIgnoredChannels = updateIgnoredChannels;
 function attachDismissListener(channelId, messageId) {
-	const messageDom = document.getElementById(`chat-messages-${channelId}-${messageId}`);
+	const messageDom = document.getElementById("chat-messages-" + channelId + "-" + messageId);
 	if (!messageDom) return;
-	const ephemeralContainer = messageDom.querySelector(`[class*="ephemeralMessage"]`) || messageDom.querySelector(`[class*="ephemeral"]`) || null;
+	const ephemeralContainer = messageDom.querySelector("[class*=\"ephemeralMessage\"]") || messageDom.querySelector("[class*=\"ephemeral\"]") || null;
 	if (!ephemeralContainer) return;
 	const candidates = Array.from(ephemeralContainer.querySelectorAll("[role=\"button\"], button, a"));
 	const dismissButton = candidates.find((el) => {
@@ -214,7 +337,7 @@ function attachDismissListener(channelId, messageId) {
 		try {
 			e.stopPropagation();
 			e.preventDefault();
-		} catch (err) {}
+		} catch {}
 		flux.dispatcher.dispatch({
 			type: "MESSAGE_DELETE",
 			channelId,
@@ -230,10 +353,10 @@ function updateMessageDisplay() {
 	const messages = messageStore.getMessages(getSelectedChannel())?._array;
 	if (!messages) return;
 	for (const message of messages) {
-		const messageDom = document.getElementById(`chat-messages-${message.channel_id}-${message.id}`);
+		const messageDom = document.getElementById("chat-messages-" + message.channel_id + "-" + message.id);
 		if (!messageDom) continue;
 		displayBeforeEdit(message.id, message.channel_id, messageDom);
-		const hasEphemeral = !!messageDom.querySelector(`[class*="ephemeralMessage"]`) || !!messageDom.querySelector(`[class*="ephemeral"]`);
+		const hasEphemeral = !!messageDom.querySelector("[class*=\"ephemeralMessage\"]") || !!messageDom.querySelector("[class*=\"ephemeral\"]");
 		if (hasEphemeral) attachDismissListener(message.channel_id, message.id);
 	}
 }
@@ -244,6 +367,7 @@ function onLoad() {
 	showEditHistory = plugin.store.showEditHistory !== false;
 	showDiffs = plugin.store.showDiffs !== false;
 	useWhitelist = plugin.store.useWhitelist === true;
+	ignoreSelf = plugin.store.ignoreSelf !== false;
 	updateMessageDisplay();
 }
 const oldTimeStamp = "2001-09-11T12:46:30.000Z";
@@ -254,6 +378,8 @@ function block(payload) {
 		if (!messageStore) return;
 		let storedMessage = messageStore.getMessage(payload.channelId, payload.id);
 		if (!storedMessage) return;
+		const self = getSelfId();
+		if (ignoreSelf && self && storedMessage.author && storedMessage.author.id === self) return;
 		const isIgnoredUser = ignoredUsers.includes(storedMessage.author.id);
 		const isIgnoredChannel = ignoredChannels.includes(storedMessage.channel_id);
 		let shouldBlock = false;
@@ -280,6 +406,8 @@ else shouldBlock = isIgnoredUser || isIgnoredChannel;
 		const messageStore = getMessageStore();
 		const oldMessage = messageStore.getMessage(message.channel_id, message.id);
 		if (!oldMessage) return;
+		const self = getSelfId();
+		if (ignoreSelf && self && message.author && message.author.id === self) return;
 		const isIgnoredUser = ignoredUsers.includes(message.author.id);
 		const isIgnoredChannel = ignoredChannels.includes(message.channel_id);
 		let shouldBlock = false;
@@ -288,10 +416,10 @@ else shouldBlock = isIgnoredUser || isIgnoredChannel;
 		if (shouldBlock) return;
 		if (oldMessage.content !== message.content) messageEditHistory[message.id] = oldMessage.content;
 		setTimeout(() => {
-			const messageDom = document.getElementById(`chat-messages-${message.channel_id}-${message.id}`);
+			const messageDom = document.getElementById("chat-messages-" + message.channel_id + "-" + message.id);
 			if (messageDom) {
 				displayBeforeEdit(message.id, message.channel_id, messageDom);
-				const hasEphemeral = !!messageDom.querySelector(`[class*="ephemeralMessage"]`) || !!messageDom.querySelector(`[class*="ephemeral"]`);
+				const hasEphemeral = !!messageDom.querySelector("[class*=\"ephemeralMessage\"]") || !!messageDom.querySelector("[class*=\"ephemeral\"]");
 				if (hasEphemeral) attachDismissListener(message.channel_id, message.id);
 			}
 		}, 120);
@@ -308,7 +436,7 @@ function displayBeforeEdit(messageId, channelId, messageDom) {
 	if (!previousContent) return;
 	let existingBeforeEdit = messageDom.querySelector(".nea-before-edit");
 	if (existingBeforeEdit) existingBeforeEdit.remove();
-	const messageContent = messageDom.querySelector(`[id^="message-content-"]`);
+	const messageContent = messageDom.querySelector("[id^=\"message-content-\"]");
 	if (!messageContent) return;
 	const currentContent = messageContent.textContent || "";
 	const oldWords = previousContent.split(/\s+/);
@@ -321,17 +449,17 @@ function displayBeforeEdit(messageId, channelId, messageDom) {
 		oldIndex++;
 		newIndex++;
 	} else if (oldIndex < oldWords.length && (newIndex >= newWords.length || oldWords[oldIndex] !== newWords[newIndex + 1])) {
-		diffHtml += `<span class="deleted-word">${oldWords[oldIndex]} </span>`;
+		diffHtml += "<span class=\"deleted-word\">" + oldWords[oldIndex] + " </span>";
 		oldIndex++;
 	} else {
-		diffHtml += `<span class="added-word">${newWords[newIndex]} </span>`;
+		diffHtml += "<span class=\"added-word\">" + newWords[newIndex] + " </span>";
 		newIndex++;
 	}
 	diffHtml = diffHtml.replace("(edited)", "");
 	const beforeEditContainer = document.createElement("span");
 	beforeEditContainer.classList.add("nea-before-edit");
-	if (!showDiffs) beforeEditContainer.innerHTML = `\nPrev: ${previousContent}`;
-else beforeEditContainer.innerHTML = `\nDif: ${diffHtml}`;
+	if (!showDiffs) beforeEditContainer.innerHTML = "\nPrev: " + previousContent;
+else beforeEditContainer.innerHTML = "\nDif: " + diffHtml;
 	messageContent.appendChild(beforeEditContainer);
 }
 function onReRenderEvent(payload) {
@@ -345,8 +473,6 @@ function onUnload() {
 function getSelectedChannel() {
 	return shelter.flux.stores.SelectedChannelStore.getChannelId();
 }
-window.updateIgnoredUsers = updateIgnoredUsers;
-window.updateIgnoredChannels = updateIgnoredChannels;
 function setShowEditHistory(value) {
 	showEditHistory = value;
 	plugin.store.showEditHistory = value;
@@ -362,10 +488,17 @@ function setUseWhitelist(value) {
 	plugin.store.useWhitelist = value;
 	updateMessageDisplay();
 }
+function setIgnoreSelf(value) {
+	ignoreSelf = value;
+	plugin.store.ignoreSelf = value;
+	updateIgnoredUsers();
+	updateMessageDisplay();
+}
 
 //#endregion
 exports.onLoad = onLoad
 exports.onUnload = onUnload
+exports.setIgnoreSelf = setIgnoreSelf
 exports.setShowDiffs = setShowDiffs
 exports.setShowEditHistory = setShowEditHistory
 exports.setUseWhitelist = setUseWhitelist
